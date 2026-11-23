@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { FormEvent } from "react";
 
 export function LoginForm({
   className,
@@ -26,7 +27,7 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleLogin = async (e:FormEvent<HTMLFormElement> ) => {
     e.preventDefault();
     const supabase = createClient();
     setIsLoading(true);
