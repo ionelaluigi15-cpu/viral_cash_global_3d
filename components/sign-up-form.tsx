@@ -13,7 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { useRouter } from "next/navigation"import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { FormEvent } from "react";
 
 export function SignUpForm({
@@ -27,7 +28,7 @@ export function SignUpForm({
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-const handleSignUp = async (e: FormEvent<HTMLHTMLFormElement>) => { 
+const handleSignUp = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const supabase = createClient();
     setIsLoading(true);
