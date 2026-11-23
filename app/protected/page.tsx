@@ -1,11 +1,8 @@
+
 import { redirect } from "next/navigation";
-
 import { createClient } from "@/lib/supabase/server";
-import { InfoIcon } from "lucide-react";
-import { FetchDataSteps } from "@/components/tutorial/fetch-data-steps";
-import { Suspense } from "react";
 
-async function UserDetails() {
+export default async function ProtectedPage() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
 
@@ -13,31 +10,71 @@ async function UserDetails() {
     redirect("/auth/login");
   }
 
-  return JSON.stringify(data.claims, null, 2);
-}
+  const email = String(data.claims.email ?? "Utente");
 
-export default function ProtectedPage() {
   return (
-    <div className="flex-1 w-full flex flex-col gap-12">
-      <div className="w-full">
-        <div className="bg-accent text-sm p-3 px-5 rounded-md text-foreground flex gap-3 items-center">
-          <InfoIcon size="16" strokeWidth={2} />
-          This is a protected page that you can only see as an authenticated
-          user
-        </div>
+    <main className="min-h-screen bg-[#08090d] text-white p-6 md:p-10">
+      <div className="max-w-6xl mx-auto">
+
+        <header className="flex flex-wrap justify-between items-center gap-4 border-b border-[#d9b568]/20 pb-6">
+          <h1 className="text-2xl font-bold text-[#d9b568]">
+            VIRAL CASH GLOBAL
+          </h1>
+
+          <span className="text-sm text-gray-400">
+            ACCOUNT: {email}
+          </span>
+        </header>
+
+        <section className="py-16">
+          <p className="text-[#d9b568] tracking-widest text-sm">
+            AREA PERSONALE
+          </p>
+
+          <h2 className="text-4xl md:text-6xl font-extrabold mt-4">
+            BENVENUTO IN
+            <span className="block text-[#d9b568]">
+              VIRAL CASH GLOBAL
+            </span>
+          </h2>
+
+          <p className="text-gray-400 mt-6 max-w-2xl">
+            Il tuo spazio digitale per social, campagne, attività
+            e future opportunità di monetizzazione.
+          </p>
+        </section>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+          {[
+            ["SOCIAL", "Gestisci i tuoi collegamenti social"],
+            ["MICROTASK", "Scopri le attività disponibili"],
+            ["CAMPAGNE", "Esplora le campagne"],
+            ["GUADAGNI", "Consulta il tuo saldo e i tuoi progressi"],
+            ["COMMUNITY", "Entra nella community globale"],
+            ["ANALYTICS", "Monitora la tua attività"],
+          ].map(([title, description]) => (
+            <div
+              key={title}
+              className="rounded-2xl border border-[#d9b568]/20 bg-[#11141b] p-7"
+            >
+              <h3 className="text-xl font-bold text-[#d9b568]">
+                {title}
+              </h3>
+
+              <p className="text-gray-400 mt-3 text-sm">
+                {description}
+              </p>
+            </div>
+          ))}
+
+        </section>
+
+        <footer className="text-center text-gray-500 text-sm mt-16 border-t border-[#d9b568]/10 pt-6">
+          VIRAL CASH GLOBAL © 2026
+        </footer>
+
       </div>
-      <div className="flex flex-col gap-2 items-start">
-        <h2 className="font-bold text-2xl mb-4">Your user details</h2>
-        <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
-          <Suspense>
-            <UserDetails />
-          </Suspense>
-        </pre>
-      </div>
-      <div>
-        <h2 className="font-bold text-2xl mb-4">Next steps</h2>
-        <FetchDataSteps />
-      </div>
-    </div>
+    </main>
   );
 }
