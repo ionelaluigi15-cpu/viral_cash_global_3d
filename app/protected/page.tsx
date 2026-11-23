@@ -1,9 +1,9 @@
 
-import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InfoIcon } from "lucide-react";
 import { FetchDataSteps } from "@/components/tutorial/fetch-data-steps";
+import { Suspense } from "react";
 
 async function UserDetails() {
   const supabase = await createClient();
@@ -13,12 +13,14 @@ async function UserDetails() {
     redirect("/auth/login");
   }
 
-  return JSON.stringify(data.claims, null, 2);
+  return (
+    <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
+      {JSON.stringify(data.claims, null, 2)}
+    </pre>
+  );
 }
 
-export default async function ProtectedPage() {
-  await connection();
-
+export default function ProtectedPage() {
   return (
     <div className="flex-1 w-full flex flex-col gap-12">
       <div className="w-full">
@@ -29,10 +31,13 @@ export default async function ProtectedPage() {
       </div>
 
       <div className="flex flex-col gap-2 items-start">
-        <h2 className="font-bold text-2xl mb-4">Your user details</h2>
-        <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
+        <h2 className="font-bold text-2xl mb-4">
+          Your user details
+        </h2>
+
+        <Suspense fallback={<p>Loading user...</p>}>
           <UserDetails />
-        </pre>
+        </Suspense>
       </div>
 
       <div>
