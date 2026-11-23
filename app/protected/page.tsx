@@ -1,93 +1,120 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Suspense } from "react";
 
-async function ProtectedContent() {
+export default async function ProtectedPage() {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
 
-  if (error || !data?.claims) {
+  const { data: claimsData, error: authError } =
+    await supabase.auth.getClaims();
+
+  if (authError || !claimsData?.claims) {
     redirect("/auth/login");
   }
 
-  const email = String(data.claims.email ?? "Utente");
+  const userId = claimsData.claims.sub;
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("email, username, balance, points, status, created_at")
+    .eq("id", userId)
+    .single();
 
   return (
-    <main className="min-h-screen bg-[#08090d] text-white p-6 md:p-10">
-      <div className="max-w-6xl mx-auto">
+    <main className="min-h-screen bg-[#08090d] text-white p-6">
+      <div className="mx-auto max-w-5xl space-y-8">
 
-        <header className="flex flex-wrap justify-between items-center gap-4 border-b border-[#d9b568]/20 pb-6">
-          <h1 className="text-2xl font-bold text-[#d9b568]">
+        <header className="border-b border-[#d9b568]/30 pb-6">
+          <h1 className="text-3xl font-black tracking-wide text-[#d9b568]">
             VIRAL CASH GLOBAL
           </h1>
-
-          <p className="text-sm text-gray-400">
-            {email}
+          <p className="mt-2 text-gray-400">
+            La tua area personale
           </p>
         </header>
 
-        <section className="py-16">
-          <p className="text-[#d9b568] tracking-widest text-sm">
-            AREA PERSONALE
-          </p>
+        {error || !profile ? (
+          <div className="rounded-2xl border border-red-500/30 bg-red-950/20 p-5">
+            <h2 className="font-bold text-red-400">
+              Profilo non disponibile
+            </h2>
+            <p className="mt-2 text-sm text-gray-300">
+              Il tuo account è autenticato, ma il profilo non è ancora
+              disponibile nel database.
+            </p>
+          </div>
+        ) : (
+          <>
+            <section className="rounded-2xl border border-[#d9b568]/30 bg-[#11141b] p-6">
+              <p className="text-sm tracking-[0.2em] text-[#d9b568]">
+                ACCOUNT PERSONALE
+              </p>
 
-          <h2 className="text-4xl md:text-6xl font-extrabold mt-4">
-            BENVENUTO IN
-            <span className="block text-[#d9b568]">
-              VIRAL CASH GLOBAL
-            </span>
-          </h2>
+              <h2 className="mt-4 text-2xl font-bold">
+                Benvenuto, {profile.username || "Utente"}
+              </h2>
 
-          <p className="text-gray-400 mt-6 max-w-2xl">
-            Il tuo spazio digitale per social, campagne,
-            attività e opportunità di monetizzazione.
-          </p>
-        </section>
+              <p className="mt-2 break-all text-gray-400">
+                {profile.email}
+              </p>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            ["SOCIAL", "Gestisci i tuoi collegamenti social"],
-            ["MICROTASK", "Scopri le attività disponibili"],
-            ["CAMPAGNE", "Esplora le campagne"],
-            ["GUADAGNI", "Consulta saldo e progressi"],
-            ["COMMUNITY", "Entra nella community globale"],
-            ["ANALYTICS", "Monitora la tua attività"],
-          ].map(([title, description]) => (
-            <div
-              key={title}
-              className="rounded-2xl border border-[#d9b568]/20 bg-[#11141b] p-7"
-            >
-              <h3 className="text-xl font-bold text-[#d9b568]">
-                {title}
+              <div className="mt-4 inline-flex rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-sm text-green-400">
+                Account {profile.status}
+              </div>
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-[#d9b568]/30 bg-[#11141b] p-6">
+                <p className="text-sm text-gray-400">
+                  SALDO DISPONIBILE
+                </p>
+                <p className="mt-3 text-4xl font-bold text-[#d9b568]">
+                  € {Number(profile.balance).toFixed(2)}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-[#d9b568]/30 bg-[#11141b] p-6">
+                <p className="text-sm text-gray-400">
+                  PUNTI TOTALI
+                </p>
+                <p className="mt-3 text-4xl font-bold text-[#d9b568]">
+                  {profile.points}
+                </p>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-[#d9b568]/20 bg-[#11141b] p-6">
+              <h3 className="text-lg font-bold text-[#d9b568]">
+                Informazioni account
               </h3>
 
-              <p className="text-gray-400 mt-3 text-sm">
-                {description}
-              </p>
-            </div>
-          ))}
-        </section>
+              <div className="mt-5 space-y-4 text-sm">
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Username</span>
+                  <span>{profile.username || "Non impostato"}</span>
+                </div>
 
-        <footer className="text-center text-gray-500 text-sm mt-16 border-t border-[#d9b568]/10 pt-6">
-          VIRAL CASH GLOBAL © 2026
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Stato</span>
+                  <span>{profile.status}</span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Registrazione</span>
+                  <span>
+                    {new Date(profile.created_at).toLocaleDateString("it-IT")}
+                  </span>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
+        <footer className="border-t border-[#d9b568]/20 pt-5 text-center text-xs text-gray-500">
+          VIRAL CASH GLOBAL · Secure Personal Dashboard
         </footer>
 
       </div>
     </main>
-  );
-}
-
-export default function ProtectedPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#08090d] text-[#d9b568] flex items-center justify-center">
-          Caricamento VIRAL CASH GLOBAL...
-        </div>
-      }
-    >
-      <ProtectedContent />
-    </Suspense>
   );
 }
