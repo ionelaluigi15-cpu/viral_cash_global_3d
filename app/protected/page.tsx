@@ -1,8 +1,9 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Suspense } from "react";
 
-export default async function ProtectedPage() {
+async function ProtectedContent() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
 
@@ -21,9 +22,9 @@ export default async function ProtectedPage() {
             VIRAL CASH GLOBAL
           </h1>
 
-          <span className="text-sm text-gray-400">
-            ACCOUNT: {email}
-          </span>
+          <p className="text-sm text-gray-400">
+            {email}
+          </p>
         </header>
 
         <section className="py-16">
@@ -39,18 +40,17 @@ export default async function ProtectedPage() {
           </h2>
 
           <p className="text-gray-400 mt-6 max-w-2xl">
-            Il tuo spazio digitale per social, campagne, attività
-            e future opportunità di monetizzazione.
+            Il tuo spazio digitale per social, campagne,
+            attività e opportunità di monetizzazione.
           </p>
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-
           {[
             ["SOCIAL", "Gestisci i tuoi collegamenti social"],
             ["MICROTASK", "Scopri le attività disponibili"],
             ["CAMPAGNE", "Esplora le campagne"],
-            ["GUADAGNI", "Consulta il tuo saldo e i tuoi progressi"],
+            ["GUADAGNI", "Consulta saldo e progressi"],
             ["COMMUNITY", "Entra nella community globale"],
             ["ANALYTICS", "Monitora la tua attività"],
           ].map(([title, description]) => (
@@ -67,7 +67,6 @@ export default async function ProtectedPage() {
               </p>
             </div>
           ))}
-
         </section>
 
         <footer className="text-center text-gray-500 text-sm mt-16 border-t border-[#d9b568]/10 pt-6">
@@ -76,5 +75,19 @@ export default async function ProtectedPage() {
 
       </div>
     </main>
+  );
+}
+
+export default function ProtectedPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#08090d] text-[#d9b568] flex items-center justify-center">
+          Caricamento VIRAL CASH GLOBAL...
+        </div>
+      }
+    >
+      <ProtectedContent />
+    </Suspense>
   );
 }
