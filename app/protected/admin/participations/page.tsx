@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const PATH = "/protected/admin/participations";
 
@@ -29,16 +30,23 @@ async function requireAdmin() {
     redirect("/protected");
   }
 
-  return supabase;
+  return {
+    supabase,
+    user,
+  };
 }
 
-async function updateParticipation(formData: FormData) {
+async function updateParticipation(
+  formData: FormData
+) {
   "use server";
 
-  const supabase = await requireAdmin();
+  const { user } = await requireAdmin();
 
   const id = String(formData.get("id") || "");
-  const status = String(formData.get("status") || "");
+  const status = String(
+    formData.get("status") || ""
+  );
 
   const validId =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -50,23 +58,49 @@ async function updateParticipation(formData: FormData) {
     redirect(`${PATH}?result=invalid`);
   }
 
-  const { data, error } = await supabase
-    .from("campaign_participations")
-    .update({ status })
-    .eq("id", id)
-    .eq("status", "pending")
-    .select("id")
-    .maybeSingle();
+  const adminClient = createAdminClient();
 
-  if (error || !data) {
-    redirect(`${PATH}?result=error`);
+  if (status === "approved") {
+    const { data, error } =
+      await adminClient.rpc(
+        "approve_campaign_participation",
+        {
+          p_participation_id: id,
+          p_admin_id: user.id,
+        }
+      );
+
+    if (error || data !== true) {
+      redirect(`${PATH}?result=error`);
+    }
+  }
+
+  if (status === "rejected") {
+    const { data, error } =
+      await adminClient
+        .from("campaign_participations")
+        .update({ status: "rejected" })
+        .eq("id", id)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+
+    if (error || !data) {
+      redirect(`${PATH}?result=error`);
+    }
   }
 
   revalidatePath(PATH);
   revalidatePath("/protected/campaigns");
   revalidatePath("/protected");
 
-  redirect(`${PATH}?result=success`);
+  redirect(
+    `${PATH}?result=${
+      status === "approved"
+        ? "approved"
+        : "rejected"
+    }`
+  );
 }
 
 export default async function ParticipationsPage({
@@ -76,7 +110,7 @@ export default async function ParticipationsPage({
 }) {
   await connection();
 
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   const params = await searchParams;
 
   const { data, error } = await supabase
@@ -90,7 +124,7 @@ export default async function ParticipationsPage({
   const { data: campaigns, error: campaignsError } =
     await supabase
       .from("campaigns")
-      .select("id,title,platform");
+      .select("id,title,platform,reward");
 
   const counts = await Promise.all(
     ["pending", "approved", "rejected"].map(
@@ -143,7 +177,6 @@ export default async function ParticipationsPage({
 
   return (
     <main className="min-h-screen bg-[#08090d] p-4 text-white md:p-8">
-
       <div className="mx-auto max-w-6xl">
 
         <Link
@@ -165,11 +198,31 @@ export default async function ParticipationsPage({
           <p className="mt-2 text-gray-400">
             Global Admin Participation Control Center
           </p>
+
+          <div className="mt-4 rounded-xl border border-[#d9b568]/30 bg-[#11141b] p-4">
+            <p className="font-bold text-[#d9b568]">
+              GLOBAL REWARD ENGINE
+            </p>
+
+            <p className="mt-2 text-sm text-gray-400">
+              Approvazione e accredito automatico
+              delle ricompense nel wallet.
+            </p>
+          </div>
         </header>
 
-        {params.result === "success" && (
+        {params.result === "approved" && (
           <div className="mb-5 rounded-xl border border-green-700 bg-green-950 p-4 text-green-300">
-            Candidatura aggiornata con successo.
+            Candidatura approvata.
+            Eventuale ricompensa accreditata
+            correttamente nel wallet.
+          </div>
+        )}
+
+        {params.result === "rejected" && (
+          <div className="mb-5 rounded-xl border border-red-700 bg-red-950 p-4 text-red-300">
+            Candidatura rifiutata correttamente.
+            Nessun accredito effettuato.
           </div>
         )}
 
@@ -177,8 +230,9 @@ export default async function ParticipationsPage({
           params.result || ""
         ) && (
           <div className="mb-5 rounded-xl border border-red-700 bg-red-950 p-4 text-red-300">
-            Operazione non riuscita. Verifica lo stato
-            della candidatura e i permessi.
+            Operazione non riuscita.
+            Verifica lo stato della candidatura,
+            la campagna e i permessi.
           </div>
         )}
 
@@ -190,7 +244,6 @@ export default async function ParticipationsPage({
         ) : (
           <>
             <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-
               {stats.map((item) => (
                 <div
                   key={item.label}
@@ -200,16 +253,16 @@ export default async function ParticipationsPage({
                     {item.label}
                   </p>
 
-                  <p className={`mt-2 text-3xl font-bold ${item.color}`}>
+                  <p
+                    className={`mt-2 text-3xl font-bold ${item.color}`}
+                  >
                     {item.value}
                   </p>
                 </div>
               ))}
-
             </section>
 
             <section className="mt-8 space-y-4">
-
               <h2 className="text-xl font-semibold text-[#d9b568]">
                 Elenco candidature
               </h2>
@@ -226,7 +279,8 @@ export default async function ParticipationsPage({
 
               {rows.map((row) => {
                 const campaign = campaigns?.find(
-                  (item) => item.id === row.campaign_id
+                  (item) =>
+                    item.id === row.campaign_id
                 );
 
                 return (
@@ -239,17 +293,38 @@ export default async function ParticipationsPage({
                     </h3>
 
                     <p className="mt-1 text-sm text-gray-400">
-                      {campaign?.platform || "Piattaforma"}
+                      {campaign?.platform ||
+                        "Piattaforma"}
                     </p>
 
                     <p className="mt-3 break-all text-xs text-gray-400">
                       Utente: {row.user_id}
                     </p>
 
-                    <p className="mt-2 text-sm">
-                      Ricompensa registrata: €{" "}
-                      {Number(row.reward_amount).toFixed(2)}
-                    </p>
+                    <div className="mt-4 rounded-xl border border-[#d9b568]/20 bg-[#08090d] p-4">
+                      <p className="text-sm text-gray-400">
+                        Ricompensa prevista attuale
+                      </p>
+
+                      <p className="mt-1 text-xl font-bold text-[#d9b568]">
+                        {campaign
+                          ? `€ ${Number(
+                              campaign.reward
+                            ).toFixed(2)}`
+                          : "Non disponibile"}
+                      </p>
+
+                      <p className="mt-3 text-sm text-gray-400">
+                        Ricompensa registrata
+                      </p>
+
+                      <p className="mt-1 text-xl font-bold text-green-400">
+                        €{" "}
+                        {Number(
+                          row.reward_amount
+                        ).toFixed(2)}
+                      </p>
+                    </div>
 
                     <p className="mt-3 font-semibold">
                       {row.status === "pending" && (
@@ -301,19 +376,22 @@ export default async function ParticipationsPage({
                         </button>
                       </form>
                     )}
-
                   </article>
                 );
               })}
-
             </section>
           </>
         )}
 
         <footer className="mt-10 border-t border-[#d9b568]/20 pt-5 text-center text-xs text-gray-500">
           VIRAL CASH GLOBAL © 2026
+
           <p className="mt-2">
             GLOBAL ADMIN CONTROL CENTER
+          </p>
+
+          <p className="mt-2 text-[#d9b568]">
+            GLOBAL REWARD & WALLET ENGINE
           </p>
         </footer>
 
