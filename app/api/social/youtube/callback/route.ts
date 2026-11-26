@@ -1,5 +1,4 @@
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { timingSafeEqual } from "node:crypto";
