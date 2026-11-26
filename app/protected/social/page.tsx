@@ -15,7 +15,20 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-export default async function SocialPage() {
+const youtubeErrors = new Map([
+  ["authorization_denied", "Autorizzazione YouTube annullata."],
+  ["channel_not_found", "Nessun canale YouTube trovato per questo account Google."],
+  ["invalid_session", "La sessione di collegamento è scaduta. Riprova da questa pagina."],
+  ["invalid_state", "La sessione di collegamento è scaduta. Riprova da questa pagina."],
+  ["database_error", "Impossibile salvare il collegamento YouTube. Riprova più tardi."],
+  ["database_configuration_error", "Il salvataggio del collegamento YouTube non è al momento disponibile."],
+]);
+
+export default async function SocialPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ youtube?: string | string[] }>;
+}) {
   await connection();
 
   const supabase = await createClient();
@@ -34,6 +47,21 @@ export default async function SocialPage() {
       .from("social_accounts")
       .select("platform, username, status")
       .eq("user_id", user.id);
+
+  const { youtube } = await searchParams;
+  const youtubeConnected = accounts?.some(
+    (account) =>
+      account.platform.toLowerCase() === "youtube" &&
+      account.status === "connected",
+  );
+  const youtubeSuccess = youtube === "connected" && youtubeConnected;
+  const youtubeMessage =
+    typeof youtube === "string" && youtube
+      ? youtubeSuccess
+        ? "Canale YouTube collegato."
+        : youtubeErrors.get(youtube) ??
+          "Impossibile confermare il collegamento YouTube. Riprova più tardi."
+      : null;
 
   const platforms = [
     {
@@ -95,6 +123,15 @@ export default async function SocialPage() {
             Account: {user.email}
           </p>
         </header>
+
+        {youtubeMessage && (
+          <p
+            role={youtubeSuccess ? "status" : "alert"}
+            className={`mb-6 rounded-xl border border-current p-4 ${youtubeSuccess ? "text-green-400" : "text-yellow-400"}`}
+          >
+            {youtubeMessage}
+          </p>
+        )}
 
         {accountsError && (
           <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-950/30 p-5 text-red-400">
@@ -170,6 +207,8 @@ export default async function SocialPage() {
                   <p className="mt-2 font-bold text-yellow-400">
                     {accountsError
                       ? "Stato non disponibile"
+                      : account?.status === "connected" && platform.name === "YouTube"
+                      ? "Collegato"
                       : account
                       ? "Profilo registrato - da verificare"
                       : "Non collegato"}
@@ -183,14 +222,24 @@ export default async function SocialPage() {
 
                 </div>
 
-                <button
-                  type="button"
-                  disabled
-                  className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#d9b568]/30 p-4 font-bold text-[#d9b568] opacity-60"
-                >
-                  <Link2 size={20} />
-                  OAUTH DA CONFIGURARE
-                </button>
+                {platform.name === "YouTube" ? (
+                  <a
+                    href="/api/social/youtube/connect"
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#d9b568] p-4 font-bold text-black hover:bg-[#e5c782]"
+                  >
+                    <Link2 size={20} />
+                    {youtubeConnected ? "Ricollega YouTube" : "Collega YouTube"}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#d9b568]/30 p-4 font-bold text-[#d9b568] opacity-60"
+                  >
+                    <Link2 size={20} />
+                    OAUTH DA CONFIGURARE
+                  </button>
+                )}
 
               </article>
             );
@@ -243,4 +292,4 @@ export default async function SocialPage() {
       </div>
     </main>
   );
-                    }
+}
