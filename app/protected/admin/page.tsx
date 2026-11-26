@@ -66,8 +66,8 @@ export default async function AdminPage() {
       title: "Wallet",
       description: "Controllo dei saldi e delle transazioni",
       icon: Wallet,
-      href: null,
-      active: false,
+      href: "/protected/admin/wallet",
+      active: true,
     },
     {
       title: "Premi e ricompense",
@@ -214,7 +214,7 @@ export default async function AdminPage() {
           </p>
 
           <p className="mt-3 text-sm text-green-400">
-            ✓ Motore SQL verificato
+            ✓ Motore SQL verificato in TEST
           </p>
 
           <p className="mt-2 text-sm text-green-400">
@@ -222,19 +222,43 @@ export default async function AdminPage() {
           </p>
 
           <p className="mt-2 text-sm text-green-400">
-            ✓ Aggiornamenti diretti bloccati
+            ✓ Aggiornamenti diretti non autorizzati bloccati
           </p>
 
-          <p className="mt-2 text-sm text-yellow-400">
-            Test completo dal sito da eseguire
+          <p className="mt-2 text-sm text-green-400">
+            ✓ Accredito automatico dal sito verificato in TEST
           </p>
 
-          <Link
-            href="/protected/admin/participations"
-            className="mt-5 block rounded-xl bg-[#d9b568] p-4 text-center font-bold text-black"
-          >
-            GESTISCI RICOMPENSE
-          </Link>
+          <p className="mt-2 text-sm text-green-400">
+            ✓ Visualizzazione saldo Wallet verificata
+          </p>
+
+          <p className="mt-2 text-sm text-green-400">
+            ✓ Controllo contabile verificato sui dati di test
+          </p>
+
+          <p className="mt-4 text-sm text-yellow-400">
+            Collaudi di sicurezza e verifiche finali
+            prima del rilascio pubblico.
+          </p>
+
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+
+            <Link
+              href="/protected/admin/participations"
+              className="block rounded-xl bg-[#d9b568] p-4 text-center font-bold text-black"
+            >
+              GESTISCI RICOMPENSE
+            </Link>
+
+            <Link
+              href="/protected/admin/wallet"
+              className="block rounded-xl border border-[#d9b568] p-4 text-center font-bold text-[#d9b568]"
+            >
+              CONTROLLO WALLET
+            </Link>
+
+          </div>
 
         </section>
 
@@ -246,6 +270,12 @@ export default async function AdminPage() {
           <p className="mt-3 text-gray-400">
             Accesso riservato agli amministratori
             autorizzati nel database.
+          </p>
+
+          <p className="mt-3 text-sm text-gray-400">
+            Il modulo Wallet è in sola lettura.
+            Nessuna modifica manuale dei saldi,
+            nessun pagamento o prelievo.
           </p>
         </section>
 
