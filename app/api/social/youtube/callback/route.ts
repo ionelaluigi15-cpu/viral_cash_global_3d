@@ -1,3 +1,4 @@
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { timingSafeEqual } from "node:crypto";
@@ -152,7 +153,51 @@ export async function GET(request: NextRequest) {
       return finish("channel_not_found");
     }
 
-    return finish("verified");
+    const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+const serviceRoleKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceRoleKey) {
+  return finish("database_configuration_error");
+}
+
+const admin = createAdminClient(
+  supabaseUrl,
+  serviceRoleKey,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
+
+const { error: saveError } = await admin
+  .from("social_accounts")
+  .upsert(
+    {
+      user_id: user.id,
+      platform: "YouTube",
+      username: channel.snippet.title,
+      status: "connected",
+    },
+    {
+      onConflict: "user_id,platform",
+    }
+  );
+
+if (saveError) {
+  console.error(
+    "YouTube database error:",
+    saveError.code
+  );
+
+  return finish("database_error");
+}
+
+return finish("connected");
 
   } catch {
     return finish("unexpected_error");
