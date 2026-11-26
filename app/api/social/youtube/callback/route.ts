@@ -123,6 +123,21 @@ export async function GET(request: NextRequest) {
     );
 
     if (!tokenResponse.ok) {
+      const payload = await tokenResponse.json().catch(() => null);
+      const reportedError = payload?.error;
+      const knownErrors = [
+        "invalid_client",
+        "invalid_grant",
+        "invalid_request",
+        "unauthorized_client",
+        "redirect_uri_mismatch",
+        "unsupported_grant_type",
+        "temporarily_unavailable",
+      ];
+      console.error("YouTube token exchange rejected", {
+        status: tokenResponse.status,
+        reason: knownErrors.includes(reportedError) ? reportedError : "unknown",
+      });
       return finish("token_error");
     }
 
