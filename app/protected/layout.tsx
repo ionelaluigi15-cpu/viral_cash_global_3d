@@ -9,6 +9,7 @@ import {
   Megaphone,
   ShieldCheck,
   LogOut,
+  Link2,
 } from "lucide-react";
 
 async function logout() {
@@ -108,6 +109,14 @@ export default async function ProtectedLayout({
             >
               <Megaphone size={18} />
               Campagne
+            </Link>
+
+            <Link
+              href="/protected/social"
+              className="flex items-center gap-2 rounded-xl bg-[#08090d] px-3 py-3 text-sm text-[#d9b568]"
+            >
+              <Link2 size={18} />
+              Social
             </Link>
 
             {isAdmin && (
