@@ -1,11 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const redirectUri = process.env.YOUTUBE_REDIRECT_URI;
+
+  if (redirectUri) {
+    const callbackUrl = new URL(redirectUri);
+    if (request.nextUrl.origin !== callbackUrl.origin) {
+      const canonicalConnect = new URL("/api/social/youtube/connect", callbackUrl);
+      const response = NextResponse.redirect(canonicalConnect);
+      response.headers.set("Cache-Control", "no-store");
+      return response;
+    }
+  }
+
   const supabase = await createClient();
 
   const {
@@ -14,15 +26,11 @@ export async function GET() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    return NextResponse.json(
-      { error: "Accesso richiesto" },
-      { status: 401 }
-    );
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
   const clientId = process.env.YOUTUBE_CLIENT_ID;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const redirectUri = process.env.YOUTUBE_REDIRECT_URI;
 
   if (!clientId || !clientSecret || !redirectUri) {
     return NextResponse.json(
