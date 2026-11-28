@@ -96,7 +96,8 @@ export async function GET(request: NextRequest) {
     }
 
     const clientId = process.env.YOUTUBE_CLIENT_ID;
-    const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+    const configuredSecret = process.env.YOUTUBE_CLIENT_SECRET;
+    const clientSecret = configuredSecret?.trim();
 
     if (!clientId || !clientSecret) {
       return finish("configuration_error");
@@ -137,6 +138,12 @@ export async function GET(request: NextRequest) {
       console.error("YouTube token exchange rejected", {
         status: tokenResponse.status,
         reason: knownErrors.includes(reportedError) ? reportedError : "unknown",
+        ...(reportedError === "invalid_client" && {
+          secretHadOuterWhitespace: configuredSecret !== clientSecret,
+          secretHasInternalWhitespace: /\s/.test(clientSecret),
+          secretHasWrappingQuote: /^["']|["']$/.test(clientSecret),
+          secretHasMaskCharacters: /[*•…]/.test(clientSecret),
+        }),
       });
       return finish("token_error");
     }
